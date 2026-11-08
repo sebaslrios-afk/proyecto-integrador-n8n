@@ -1,0 +1,751 @@
+{
+  "name": "tp 4 ai automation",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={\n  \"email\": \"cliente@ejemplo.com\",\n  \"asunto\": \"Consulta sobre un servicio\",\n  \"nombre\": \"Juan Pérez\",\n  \"resumen\": \"El cliente solicita información...\",\n  \"respuesta_borrador\": \"Hola Juan, gracias por contactarnos...\"\n}",
+        "options": {
+          "systemMessage": "=[INICIO DE CONTEXTO COMPARTIDO]\nEl usuario se llama {{ $json.user_name || 'desconocido' }}.\nEl estado de su última solicitud es: {{ $json['Estado del caso'] || 'sin estado' }}.\nEl resumen de su última charla es: {{ $json['Resumen consolidado'] || 'sin historial' }}.\n[FIN DE CONTEXTO COMPARTIDO]\nResponde de forma profesional y corporativa utilizando este contexto si el usuario ya es recurrente.",
+          "maxIterations": 5
+        }
+      },
+      "id": "5227c4bb-a5a2-440e-9638-1cecba671022",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -528,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "openai/gpt-oss-20b",
+          "mode": "list",
+          "cachedResultName": "openai/gpt-oss-20b"
+        },
+        "responsesApiEnabled": false,
+        "options": {}
+      },
+      "id": "372beea2-af10-404d-9786-397084653a37",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -528,
+        192
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "n6QbG2ceq4XvarbF",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "maxResults": 5,
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -1120,
+        -64
+      ],
+      "id": "a0407e91-141b-473f-ad65-280eb5ba4d42",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "tAJg7iaxbQhUxczz",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "87d7d2d4-2d89-4864-ada1-73c4ecabe804",
+              "leftValue": "={{ $json.Subject }}",
+              "rightValue": "Auto-reply",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "7e0ae30b-3c72-4bdd-905e-6f775230e36b",
+              "leftValue": "{{ $json.Subject }}",
+              "rightValue": "Out of office",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "b5ff53f8-1344-4062-a4e4-1a7826923163",
+              "leftValue": "{{ $json.subject }}",
+              "rightValue": "Undeliverable",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "9bc62f53-7de9-4104-af98-02374a2ab14b",
+              "leftValue": "={{ $json.From }}",
+              "rightValue": "no-reply@",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        -912,
+        -64
+      ],
+      "id": "da2f8eb3-7313-4c53-8695-4fa840844d72",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6e17d0e6-f8e9-4d44-8da5-ca3aacaba7d5",
+              "name": "correo_asunto",
+              "value": "={{ $json.Subject }}",
+              "type": "string"
+            },
+            {
+              "id": "2c9ed844-f7f7-4039-8fd4-9a8c1fc312f5",
+              "name": "correo_remitente",
+              "value": "={{ $json.From }}",
+              "type": "string"
+            },
+            {
+              "id": "f2c877ae-4209-408a-a602-fcf38f472b33",
+              "name": "correo_cuerpo",
+              "value": "={{ $json.snippet }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -688,
+        -48
+      ],
+      "id": "48ee245e-3654-444e-b8d8-18f9db393371",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "search",
+        "base": {
+          "__rl": true,
+          "value": "appIxmZxKpjAWVbpB",
+          "mode": "list",
+          "cachedResultName": "Memoria_Agente",
+          "cachedResultUrl": "https://airtable.com/appIxmZxKpjAWVbpB"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblD9g5csxO2u9daB",
+          "mode": "list",
+          "cachedResultName": "Table 1",
+          "cachedResultUrl": "https://airtable.com/appIxmZxKpjAWVbpB/tblD9g5csxO2u9daB"
+        },
+        "filterByFormula": "={Email} = '{{ $json.correo_remitente }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        80,
+        -48
+      ],
+      "id": "c23703ad-4e86-4341-af2d-f45ffb36147c",
+      "name": "Search records",
+      "alwaysOutputData": true,
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "yB5ZqM3hDn5rp2me",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "1dc17423-6f96-4209-8126-a4368f30731e",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        304,
+        -48
+      ],
+      "id": "a7aa71a9-3557-4ce1-ba41-c097affc06ac",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appIxmZxKpjAWVbpB",
+          "mode": "list",
+          "cachedResultName": "Memoria_Agente",
+          "cachedResultUrl": "https://airtable.com/appIxmZxKpjAWVbpB"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblD9g5csxO2u9daB",
+          "mode": "list",
+          "cachedResultName": "Table 1",
+          "cachedResultUrl": "https://airtable.com/appIxmZxKpjAWVbpB/tblD9g5csxO2u9daB"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Session_ID",
+              "displayName": "Session_ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Fecha de actualización",
+              "displayName": "Fecha de actualización",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Resumen consolidado",
+              "displayName": "Resumen consolidado",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Estado del caso",
+              "displayName": "Estado del caso",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Nuevo",
+                  "value": "Nuevo"
+                },
+                {
+                  "name": "In progress",
+                  "value": "In progress"
+                },
+                {
+                  "name": "Done",
+                  "value": "Done"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Datos clave",
+              "displayName": "Datos clave",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        496,
+        -144
+      ],
+      "id": "a0462303-8a4c-482b-9fc8-6312041790a8",
+      "name": "Update record",
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "yB5ZqM3hDn5rp2me",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "airtableOAuth2Api",
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appIxmZxKpjAWVbpB",
+          "mode": "list",
+          "cachedResultName": "Memoria_Agente",
+          "cachedResultUrl": "https://airtable.com/appIxmZxKpjAWVbpB"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tblD9g5csxO2u9daB",
+          "mode": "list",
+          "cachedResultName": "Table 1",
+          "cachedResultUrl": "https://airtable.com/appIxmZxKpjAWVbpB/tblD9g5csxO2u9daB"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{ $json.correo_remitente }}",
+            "Estado del caso": "Nuevo"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Session_ID",
+              "displayName": "Session_ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Fecha de actualización",
+              "displayName": "Fecha de actualización",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Resumen consolidado",
+              "displayName": "Resumen consolidado",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Estado del caso",
+              "displayName": "Estado del caso",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "options",
+              "options": [
+                {
+                  "name": "Nuevo",
+                  "value": "Nuevo"
+                },
+                {
+                  "name": "In progress",
+                  "value": "In progress"
+                },
+                {
+                  "name": "Done",
+                  "value": "Done"
+                }
+              ],
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Datos clave",
+              "displayName": "Datos clave",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        496,
+        48
+      ],
+      "id": "b784dc26-7853-4200-87d7-5bc0a0016fcd",
+      "name": "Create a record",
+      "credentials": {
+        "airtableOAuth2Api": {
+          "id": "yB5ZqM3hDn5rp2me",
+          "name": "Airtable account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "=Re: {{ $('Edit Fields').json.correo_asunto }}",
+        "message": "={{ $json.output }}",
+        "options": {
+          "sendTo": "={{ $('Edit Fields').json.correo_remitente }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        720,
+        -48
+      ],
+      "id": "979503b4-8a09-436c-912e-9af6bc60bc37",
+      "name": "Create a draft",
+      "webhookId": "78e28e7e-fb03-4c43-94d6-2d00f92fa34f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "tAJg7iaxbQhUxczz",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a0a1ad5e-ca8f-4ac0-9abe-41a8b0d5b098",
+              "name": "email",
+              "value": "{{ $('Edit Fields').item.json.correo_remitente }}",
+              "type": "string"
+            },
+            {
+              "id": "75b263b5-d18f-4ee3-96fb-e22196f79097",
+              "name": "asunto",
+              "value": "{{ $('Edit Fields').item.json.correo_asunto }}",
+              "type": "string"
+            },
+            {
+              "id": "f09447b6-124c-497b-a211-b9e0a2240dae",
+              "name": "nombre",
+              "value": "Nombre del contacto, si se identifica",
+              "type": "string"
+            },
+            {
+              "id": "3e3f2c67-7088-411e-baa5-1a8254ff4a6b",
+              "name": "resumen",
+              "value": "Resumen generado por IA",
+              "type": "string"
+            },
+            {
+              "id": "2f455c7e-463f-4156-9870-a6efc09f65d2",
+              "name": "respuesta_borrador",
+              "value": "Respuesta generada por IA",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -160,
+        -48
+      ],
+      "id": "b0757fa6-e219-4347-a343-fc0b888b7586",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "chatId": "2139429256",
+        "text": "=🔔 Nuevo correo procesado  Contacto: {{ $('Edit Fields').item.json.nombre }} Email: {{ $('Edit Fields').item.json.email }}  Asunto: {{ $('Edit Fields').item.json.asunto }}  Estado: Borrador generado en Gmail. Pendiente de revisión humana.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        944,
+        -48
+      ],
+      "id": "eb32015f-7eb6-45f1-b788-ff236ab24da0",
+      "name": "Send a text message",
+      "webhookId": "015be452-12ff-4516-a6b4-523d2bf8606a",
+      "credentials": {
+        "telegramApi": {
+          "id": "tNAtdQ6MNyx1BUOG",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "If2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search records": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Update record",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create a record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a record": {
+      "main": [
+        [
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Search records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update record": {
+      "main": [
+        [
+          {
+            "node": "Create a draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a draft": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "1c3a2270-61e1-43f8-a310-0aa780a7737d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dda041a926d0da3af148ef46c1e852a2b1b8219c01d2924abed58ab5d302b80c"
+  },
+  "nodeGroups": [],
+  "id": "HTrPt2ycAChFWBC3",
+  "tags": []
+}
